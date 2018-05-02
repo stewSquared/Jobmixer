@@ -27,7 +27,7 @@ class SyncMixer(val houseAddress: Address) extends Mixer {
 
     // Note: Simple division is naive. Without splitting randomly, it's easy to
     // determine source by summing similar transactions.
-    val part = (amount / n).setScale(amount.scale + 3)
+    val part = (amount / n).setScale(amount.scale + 3, BigDecimal.RoundingMode.DOWN)
 
     (amount - part * (n-1)) :: List.fill(n - 1)(part)
   }
@@ -74,4 +74,9 @@ class SyncMixer(val houseAddress: Address) extends Mixer {
 
     depositAddress
   }
+}
+
+object MixerApp extends App {
+  val mixer = new SyncMixer("house")
+  mixer.mix(Set("addr1", "addr2", "addr3"))
 }
