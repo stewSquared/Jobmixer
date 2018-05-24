@@ -13,9 +13,7 @@ trait Mixer {
   val houseAddress: Address
 }
 
-/* non-interactive Mixer implementation that needs no polling of a customer
- */
-class SyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
+class AsyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
   import java.util.UUID
 
   private def split(amount: Jobcoin, n: Int): List[Jobcoin] = {
@@ -74,6 +72,10 @@ class SyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
 
 object MixerApp extends App {
   val client = new FakeClient()
-  val mixer = new SyncMixer("house", client)
-  mixer.mix(Set("addr1", "addr2", "addr3"))
+  val mixer = new AsyncMixer("house", client)
+  val (depositAddress, _) = mixer.mix(Set("addr1", "addr2", "addr3"))
+  val customerAddress = newAddress()
+
+  Await.result(client.create(customerAddress), Duration.Inf)
+  Await.result(client.send(from = customerAddress, to = depositAddress, Jobcoin(50)), Duration.Inf)
 }
