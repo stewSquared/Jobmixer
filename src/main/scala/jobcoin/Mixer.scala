@@ -16,10 +16,8 @@ trait Mixer {
 
 /* non-interactive Mixer implementation that needs no polling of a customer
  */
-class SyncMixer(val houseAddress: Address) extends Mixer {
+class SyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
   import java.util.UUID
-
-  val client: Client = new FakeClient
 
   private def split(amount: Jobcoin, n: Int): List[Jobcoin] = {
     require(n > 0, s"Can't split more amount into $n")
@@ -80,6 +78,7 @@ class SyncMixer(val houseAddress: Address) extends Mixer {
 }
 
 object MixerApp extends App {
-  val mixer = new SyncMixer("house")
+  val client = new FakeClient()
+  val mixer = new SyncMixer("house", client)
   mixer.mix(Set("addr1", "addr2", "addr3"))
 }
