@@ -41,38 +41,41 @@ class SyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
     }
   }
 
+  def checkForDeposit(depositAddress: Address): Future[Option[Jobcoin]] = {
+    client.addressInfo(depositAddress).map(_.transactions.headOption.map(_.amount))
+  }
+
   // Have a new random customer deposit 50 coins
   override def mix(withdrawalAddresses: Set[Address]): Address = {
     val customerAddress = newAddress()
     val depositAddress = newAddress()
 
-    Await.result(
-      for {
-        // Todo: Parameterize Client; customer should be initialized separately.
-        _ <- client.create(customerAddress)
-        newAddressInfo <- client.addressInfo(customerAddress)
-      } yield {
-        println(s"Created new customer with jbc: $newAddressInfo")
-      },
-      Duration.Inf)
-
-    // TODO: Poll the deposit address instead
-    val amount = BigDecimal(50)
-
-    for {
-      depositTxn <- client.send(from = customerAddress, to = depositAddress, amount)
-      houseTxn <- client.send(from = depositAddress, to = houseAddress, amount)
-    } {
+    // Todo: deposit happens asynchronously from user input
+    def setup() = for {
+      _ <- client.create(customerAddress)
+      newAddressInfo <- client.addressInfo(customerAddress)
+      depositTxn <- client.send(from = customerAddress, to = depositAddress, BigDecimal(50))
+    } yield {
+      println(s"Created new customer with jbc: $newAddressInfo")
       println(s"Customer deposit detected: $depositTxn")
-      println(s"Moved funds from deposit address to house: $houseTxn")
     }
 
-    // TODO: Implement a random delay before doling out
-    // Note: this will become an background task via polling
-    Await.result(doleOut(amount, withdrawalAddresses).map((txns: List[Transaction]) =>
-      println("Dole out transactions:\n- " + txns.mkString("\n- "))
-    ), Duration.Inf)
+    // TODO: Poll the deposit address instead
+    // Note: `.get` is unsafe without `setup()`
+    def getAmount() = checkForDeposit(depositAddress).map(_.get)
 
+    // Note: this block should be triggered in background via polling
+    def moveMoney(amount: Jobcoin) = for {
+      houseTxn <- client.send(from = depositAddress, to = houseAddress, amount)
+      // TODO: Implement a random delay before doling out
+      txns <- doleOut(amount, withdrawalAddresses)
+    } yield {
+      println(s"Moved funds from deposit address to house: $houseTxn")
+      println("Dole out transactions:\n- " + txns.mkString("\n- "))
+    }
+
+    Await.result(setup(), Duration.Inf)
+    Await.result(getAmount.flatMap(moveMoney), Duration.Inf)
     depositAddress
   }
 }
