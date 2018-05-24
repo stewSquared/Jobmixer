@@ -1,8 +1,7 @@
 package jobcoin
 
-import scala.concurrent.{Await, Future, blocking}
+import scala.concurrent.{Future, blocking}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
 
 trait Mixer {
   val houseAddress: Address
@@ -55,14 +54,13 @@ class AsyncMixer(client: Client,
 
     val pollJob = for {
       depositTxn <- pollForDeposit(depositAddress)
-      houseTxn <- client.send(from = depositAddress,
-                              to = houseAddress,
-                              depositTxn.amount)
+      houseTxn <- client
+        .send(from = depositAddress, to = houseAddress, depositTxn.amount)
       txns <- doleOut(depositTxn.amount, withdrawalAddresses)
     } yield {
       println(s"Customer deposit detected: $depositTxn")
-      println(s"Moved funds from deposit address to house: $houseTxn")
-      println("Dole out transactions:\n- " + txns.mkString("\n- "))
+      println(s"Moved deposit to house: $houseTxn")
+      println("Dole out transactions:\n - " + txns.mkString("\n - "))
     }
 
     (depositAddress, pollJob)
@@ -70,13 +68,18 @@ class AsyncMixer(client: Client,
 }
 
 object MixerApp extends App {
-  val client = new FakeClient()
-  val mixer = new AsyncMixer(client, "house")
-  val (depositAddress, _) = mixer.mix("addr1", "addr2", "addr3")
-  val customerAddress = newAddress()
+  val withdrawalAddresses = args
 
-  Await.result(client.create(customerAddress), Duration.Inf)
-  Await.result(
-    client.send(from = customerAddress, to = depositAddress, Jobcoin(50)),
-    Duration.Inf)
+  val houseAddress = newAddress("house")
+  val mixer = new AsyncMixer(new RestClient(), houseAddress)
+  println(s"Started mixer with address: $houseAddress")
+
+  val (depositAddress, pollJob) = mixer.mix(withdrawalAddresses: _*)
+  println(s"Your deposit address is: $depositAddress")
+  println(
+    "Please use the UI at https://jobcoin.gemini.com/fragility to deposit your Jobcoin.")
+  println(
+    "They will eventually be transferred into these addresses:\n - " + withdrawalAddresses
+      .mkString("\n - "))
+  pollJob.onComplete(_.fold(throw _, _ => System.exit(_)))
 }
