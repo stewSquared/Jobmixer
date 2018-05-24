@@ -42,7 +42,6 @@ class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("hou
   }
 
   def pollForDeposit(depositAddress: Address): Future[Transaction] = {
-    println(s"Checking $depositAddress for deposit...")
     checkForDeposit(depositAddress).flatMap { deposit =>
       deposit.map(Future.successful).getOrElse {
         blocking(Thread.sleep(1000))
@@ -52,7 +51,9 @@ class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("hou
   }
 
   override def mix(withdrawalAddresses: Set[Address]): (Address, Future[Unit]) = {
-    val depositAddress = newAddress()
+    val depositAddress = newAddress("deposit")
+
+    println(s"Checking $depositAddress for deposit...")
 
     val pollJob: Future[Unit] = pollForDeposit(depositAddress) flatMap { depositTxn =>
       for {
@@ -72,7 +73,7 @@ class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("hou
 
 object MixerApp extends App {
   val client = new FakeClient()
-  val mixer = new AsyncMixer("house", client)
+  val mixer = new AsyncMixer(client, "house")
   val (depositAddress, _) = mixer.mix(Set("addr1", "addr2", "addr3"))
   val customerAddress = newAddress()
 
