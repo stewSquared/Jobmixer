@@ -38,7 +38,7 @@ class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("hou
   }
 
   def checkForDeposit(depositAddress: Address): Future[Option[Transaction]] = {
-    client.addressInfo(depositAddress).map(_.transactions.headOption)
+    client.addressInfo(depositAddress).map(_.transactions.lastOption)
   }
 
   def pollForDeposit(depositAddress: Address): Future[Transaction] = {

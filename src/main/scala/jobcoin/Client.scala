@@ -6,7 +6,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 case class AddressInfo(
   balance: Jobcoin,
-  transactions: List[Transaction] // TODO: Always sorted?
+  transactions: List[Transaction]
 )
 
 trait Client {
@@ -31,9 +31,9 @@ class FakeClient extends Client {
   override def addressInfo(address: Address) = Future.successful(
     AddressInfo(
       balances(address),
-      ledger.filter(txn => txn.to == address || txn.from == Some(address))))
+      ledger.filter(txn => txn.to == address || txn.from == Some(address)).reverse))
 
-  override def transactions = Future.successful(ledger)
+  override def transactions = Future.successful(ledger.reverse)
 
   override def send(from: Address, to: Address, amount: Jobcoin) = {
     require(amount > 0, "Amount must be over 0")

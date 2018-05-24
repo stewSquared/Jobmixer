@@ -28,7 +28,7 @@ class ClientSpec extends FlatSpec with Matchers with ScalaFutures with Inside {
     }
   }
 
-  it should "be able to recive new coins" in {
+  it should "be able to receive new coins" in {
     val addr1 = newAddress()
     val addr2 = newAddress()
     client.create(addr1)
@@ -39,7 +39,7 @@ class ClientSpec extends FlatSpec with Matchers with ScalaFutures with Inside {
       info2 <- client.addressInfo(addr2)
     } yield {
       inside(info1) {
-        case AddressInfo(balance, List(latest, create)) =>
+        case AddressInfo(balance, List(create, latest)) =>
           balance shouldBe Jobcoin(30)
           sendTxn shouldBe latest
       }
