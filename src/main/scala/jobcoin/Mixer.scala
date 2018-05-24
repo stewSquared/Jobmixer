@@ -8,7 +8,7 @@ trait Mixer {
   /** Immediately return a fresh deposit address, 
     * then begin a job to poll for deposits to said address.
     */
-  def mix(withdrawalAddresses: Set[Address]): Address
+  def mix(withdrawalAddresses: Set[Address]): (Address, Future[Unit])
 
   val houseAddress: Address
 }
@@ -53,10 +53,10 @@ class SyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
     }
   }
 
-  override def mix(withdrawalAddresses: Set[Address]): Address = {
+  override def mix(withdrawalAddresses: Set[Address]): (Address, Future[Unit]) = {
     val depositAddress = newAddress()
 
-    pollForDeposit(depositAddress) flatMap { depositTxn =>
+    val pollJob: Future[Unit] = pollForDeposit(depositAddress) flatMap { depositTxn =>
       for {
         houseTxn <- client.send(from = depositAddress, to = houseAddress, depositTxn.amount)
         // TODO: Implement a random delay before doling out
@@ -68,7 +68,7 @@ class SyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
       }
     }
 
-    depositAddress
+    (depositAddress, pollJob)
   }
 }
 
