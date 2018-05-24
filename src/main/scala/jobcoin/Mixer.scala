@@ -19,7 +19,7 @@ trait Mixer {
 class SyncMixer(val houseAddress: Address) extends Mixer {
   import java.util.UUID
 
-  val client = new FakeClient
+  val client: Client = new FakeClient
 
   private def split(amount: Jobcoin, n: Int): List[Jobcoin] = {
     require(n > 0, s"Can't split more amount into $n")
@@ -48,12 +48,15 @@ class SyncMixer(val houseAddress: Address) extends Mixer {
     val customerAddress = newAddress()
     val depositAddress = newAddress()
 
-    // Todo: Parameterize Client; customer should be initialized separately.
-    client.create(customerAddress)
-    locally {
-      val newAddressInfo = Await.result(client.addressInfo(customerAddress), Duration.Inf)
-      println(s"Created new customer with jbc: $newAddressInfo")
-    } 
+    Await.result(
+      for {
+        // Todo: Parameterize Client; customer should be initialized separately.
+        _ <- client.create(customerAddress)
+        newAddressInfo <- client.addressInfo(customerAddress)
+      } yield {
+        println(s"Created new customer with jbc: $newAddressInfo")
+      },
+      Duration.Inf)
 
     // TODO: Poll the deposit address instead
     val amount = BigDecimal(50)

@@ -15,6 +15,8 @@ trait Client {
 
   // TODO: Can the transaction timestamp be retrieved via callback? If not, use `Unit`
   def send(from: Address, to: Address, amount: Jobcoin): Future[Transaction]
+
+  def create(address: Address): Future[Transaction]
 }
 
 class FakeClient extends Client {
@@ -48,12 +50,12 @@ class FakeClient extends Client {
     }
   }
 
-  // TODO: move to trait and return Future
-  def create(address: Address): Unit = {
+  override def create(address: Address): Future[Transaction] = {
     val amount: Jobcoin = BigDecimal(50)
     balances(address) += 50
     // TODO add a constructor with timestamp truncated to millis
     val initialDeposit = Transaction(Instant.now(), from = None, to = address, amount)
     ledger = initialDeposit :: ledger
+    Future.successful(initialDeposit)
   }
 }
