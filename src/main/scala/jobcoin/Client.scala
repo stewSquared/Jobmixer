@@ -1,12 +1,11 @@
 package jobcoin
 
-import java.time.Instant
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class AddressInfo(
-  balance: Jobcoin,
-  transactions: List[Transaction]
+    balance: Jobcoin,
+    transactions: List[Transaction]
 )
 
 trait Client {
@@ -28,19 +27,25 @@ class FakeClient extends Client {
 
   // Note: Unsynchronized mutations here
   private var ledger: List[Transaction] = Nil
-  private val balances = new Map.WithDefault(Map.empty[Address, Jobcoin], (_ : Address) => Jobcoin(0))
+  private val balances =
+    new Map.WithDefault(Map.empty[Address, Jobcoin], (_: Address) => Jobcoin(0))
 
-  override def addressInfo(address: Address) = Future.successful(
-    AddressInfo(
-      balances(address),
-      ledger.filter(txn => txn.to == address || txn.from == Some(address)).reverse))
+  override def addressInfo(address: Address) =
+    Future.successful(
+      AddressInfo(balances(address),
+                  ledger
+                    .filter(txn =>
+                      txn.to == address || txn.from == Some(address))
+                    .reverse))
 
   override def transactions = Future.successful(ledger.reverse)
 
   override def send(from: Address, to: Address, amount: Jobcoin) = {
     require(amount > 0, "Amount must be over 0")
-    require(balances(from) >= 0, s"$from has no jobcoins!  Is it a new or unused address?")
-    require(balances(from) >= amount, s"$from only has ${balances(from)} jobcoins!")
+    require(balances(from) >= 0,
+            s"$from has no jobcoins!  Is it a new or unused address?")
+    require(balances(from) >= amount,
+            s"$from only has ${balances(from)} jobcoins!")
 
     Future[Transaction] {
       balances(from) -= amount

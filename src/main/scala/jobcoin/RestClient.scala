@@ -7,7 +7,6 @@ import com.softwaremill.sttp._
 import com.softwaremill.sttp.asynchttpclient.future._
 import com.softwaremill.sttp.circe._
 import io.circe._
-import io.circe.syntax._
 import io.circe.generic.auto._
 
 class RestClient extends Client with Codecs {
@@ -17,25 +16,29 @@ class RestClient extends Client with Codecs {
   val apiEndpoint = "http://jobcoin.gemini.com/fragility/api"
 
   override def addressInfo(address: Address): Future[AddressInfo] = {
-    sttp.get(uri"$apiEndpoint/addresses/$address")
+    sttp
+      .get(uri"$apiEndpoint/addresses/$address")
       .response(asJson[AddressInfo])
       .send()
       .flatMap(_.unsafeBody.fold(Future.failed, Future.successful))
   }
 
   override def transactions: Future[List[Transaction]] = {
-    sttp.get(uri"$apiEndpoint/transactions")
+    sttp
+      .get(uri"$apiEndpoint/transactions")
       .response(asJson[List[Transaction]])
       .send()
       .flatMap(_.unsafeBody.fold(Future.failed, Future.successful))
   }
 
-  override def send(from: Address, to: Address, amount: Jobcoin): Future[Transaction] = {
-    val sendJBC = sttp.post(uri"$apiEndpoint/transactions")
-      .body(
-        "fromAddress" -> from,
-        "toAddress" -> to,
-        "amount" -> amount.toString)
+  override def send(from: Address,
+                    to: Address,
+                    amount: Jobcoin): Future[Transaction] = {
+    val sendJBC = sttp
+      .post(uri"$apiEndpoint/transactions")
+      .body("fromAddress" -> from,
+            "toAddress" -> to,
+            "amount" -> amount.toString)
       .send()
       .map(_.unsafeBody)
 
@@ -43,7 +46,8 @@ class RestClient extends Client with Codecs {
   }
 
   override def create(address: Address): Future[Transaction] = {
-    val createJBC = sttp.post(uri"https://jobcoin.gemini.com/fragility/create")
+    val createJBC = sttp
+      .post(uri"https://jobcoin.gemini.com/fragility/create")
       .body("address" -> address)
       .send()
       .filter(!_.isServerError)
@@ -57,11 +61,14 @@ class RestClient extends Client with Codecs {
 trait Codecs {
   import cats.syntax.either._
 
-  implicit val encodeInsatnt: Encoder[Instant] = Encoder.encodeString.contramap(_.toString)
-  implicit val decodeInstant: Decoder[Instant] = Decoder.decodeString.emap { str =>
-    Either.catchNonFatal(Instant.parse(str)).leftMap(t => "Instant")
+  implicit val encodeInsatnt: Encoder[Instant] =
+    Encoder.encodeString.contramap(_.toString)
+  implicit val decodeInstant: Decoder[Instant] = Decoder.decodeString.emap {
+    str =>
+      Either.catchNonFatal(Instant.parse(str)).leftMap(t => "Instant")
   }
 
   implicit val decodeTransaction: Decoder[Transaction] =
-    Decoder.forProduct4("timestamp", "fromAddress", "toAddress", "amount")(Transaction.apply)
+    Decoder.forProduct4("timestamp", "fromAddress", "toAddress", "amount")(
+      Transaction.apply)
 }

@@ -9,7 +9,8 @@ object `package` {
   type Address = String
 
   def newAddress(): Address = UUID.randomUUID().toString()
-  def newAddress(description: String): Address = s"$description@${UUID.randomUUID()}"
+  def newAddress(description: String): Address =
+    s"$description@${UUID.randomUUID()}"
 }
 
 object Jobcoin {
@@ -17,10 +18,10 @@ object Jobcoin {
 }
 
 case class Transaction(
-  timestamp: Instant,
-  from: Option[Address],
-  to: Address,
-  amount: Jobcoin
+    timestamp: Instant,
+    from: Option[Address],
+    to: Address,
+    amount: Jobcoin
 )
 
 object Transaction {

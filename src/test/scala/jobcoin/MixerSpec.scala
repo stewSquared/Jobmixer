@@ -3,7 +3,7 @@ package jobcoin
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FlatSpec, Matchers}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 
 class MixerSpec extends FlatSpec with Matchers with ScalaFutures {
@@ -20,7 +20,9 @@ class MixerSpec extends FlatSpec with Matchers with ScalaFutures {
     Await.result(client.create(customerAddress), Duration.Inf)
 
     (for {
-      depositTxn <- client.send(from = customerAddress, to = depositAddress, Jobcoin(50))
+      depositTxn <- client.send(from = customerAddress,
+                                to = depositAddress,
+                                Jobcoin(50))
       _ <- pollJob
       accounts <- Future.sequence(withdrawalAddresses.map(client.addressInfo))
     } yield {

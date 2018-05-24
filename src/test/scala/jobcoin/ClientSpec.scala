@@ -1,7 +1,7 @@
 package jobcoin
 
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{ Inside, FlatSpec, Matchers }
+import org.scalatest.{Inside, FlatSpec, Matchers}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class ClientSpec extends FlatSpec with Matchers with ScalaFutures with Inside {
@@ -10,22 +10,25 @@ class ClientSpec extends FlatSpec with Matchers with ScalaFutures with Inside {
   val client = new RestClient()
 
   "New address" should "have 0 balance and no transactions" in {
-    client.addressInfo(newAddress()).futureValue shouldBe AddressInfo(Jobcoin(0), Nil)
+    client.addressInfo(newAddress()).futureValue shouldBe AddressInfo(
+      Jobcoin(0),
+      Nil)
   }
 
   it should "be able to be loaded with new coins" in {
     val addr = newAddress()
     client.create(addr)
 
-    whenReady(client.addressInfo(addr)) {
-      x => inside(x) { case AddressInfo(balance, List(initialTransaction)) =>
-        balance shouldBe Jobcoin(50)
-        inside(initialTransaction) {
-          case Transaction(_, from, to, amount) =>
-            amount shouldBe balance
-            from shouldBe None
-            amount shouldBe balance
-        }
+    whenReady(client.addressInfo(addr)) { x =>
+      inside(x) {
+        case AddressInfo(balance, List(initialTransaction)) =>
+          balance shouldBe Jobcoin(50)
+          inside(initialTransaction) {
+            case Transaction(_, from, to, amount) =>
+              amount shouldBe balance
+              from shouldBe None
+              amount shouldBe balance
+          }
       }
     }
   }
