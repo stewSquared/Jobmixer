@@ -11,21 +11,23 @@ case class AddressInfo(
 
 trait Client {
   def addressInfo(address: Address): Future[AddressInfo]
-  def transactions: Future[List[Transaction]] // TODO: Always sorted?
+  def transactions: Future[List[Transaction]]
 
-  // TODO: Can the transaction timestamp be retrieved via callback? If not, use `Unit`
   def send(from: Address, to: Address, amount: Jobcoin): Future[Transaction]
 
   def create(address: Address): Future[Transaction]
+
+  def latestTransaction(address: Address): Future[Option[Transaction]] = {
+    addressInfo(address).map(_.transactions.lastOption)
+  }
 }
 
+// Naive `Client` implementation for testing
 class FakeClient extends Client {
   import collection.mutable.Map
 
   // Note: Unsynchronized mutations here
   private var ledger: List[Transaction] = Nil
-
-  // Note: Unsynchronized mutation here
   private val balances = new Map.WithDefault(Map.empty[Address, Jobcoin], (_ : Address) => Jobcoin(0))
 
   override def addressInfo(address: Address) = Future.successful(

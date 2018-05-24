@@ -5,17 +5,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 trait Mixer {
+  val houseAddress: Address
   /** Immediately return a fresh deposit address, 
     * then begin a job to poll for deposits to said address.
     */
-  def mix(withdrawalAddresses: Set[Address]): (Address, Future[Unit])
-
-  val houseAddress: Address
+  def mix(withdrawalAddresses: Address*): (Address, Future[Unit])
 }
 
-class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("house")) extends Mixer {
-  import java.util.UUID
-
+class AsyncMixer(client: Client, val houseAddress: Address = newAddress("house")) extends Mixer {
   private def split(amount: Jobcoin, n: Int): List[Jobcoin] = {
     require(n > 0, s"Can't split more amount into $n")
     // TODO: take random commission
@@ -27,7 +24,7 @@ class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("hou
     (amount - part * (n-1)) :: List.fill(n - 1)(part)
   }
 
-  def doleOut(amount: Jobcoin, withdrawalAddresses: Set[Address]): Future[List[Transaction]] = {
+  def doleOut(amount: Jobcoin, withdrawalAddresses: Seq[Address]): Future[Seq[Transaction]] = {
     val withdrawalAmounts = split(amount, withdrawalAddresses.size)
 
     Future.sequence {
@@ -37,12 +34,8 @@ class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("hou
     }
   }
 
-  def checkForDeposit(depositAddress: Address): Future[Option[Transaction]] = {
-    client.addressInfo(depositAddress).map(_.transactions.lastOption)
-  }
-
   def pollForDeposit(depositAddress: Address): Future[Transaction] = {
-    checkForDeposit(depositAddress).flatMap { deposit =>
+    client.latestTransaction(depositAddress).flatMap { deposit =>
       deposit.map(Future.successful).getOrElse {
         blocking(Thread.sleep(1000))
         pollForDeposit(depositAddress)
@@ -50,21 +43,18 @@ class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("hou
     }
   }
 
-  override def mix(withdrawalAddresses: Set[Address]): (Address, Future[Unit]) = {
+  override def mix(withdrawalAddresses: Address*): (Address, Future[Unit]) = {
+    require(withdrawalAddresses.distinct.size == withdrawalAddresses.size)
     val depositAddress = newAddress("deposit")
 
-    println(s"Checking $depositAddress for deposit...")
-
-    val pollJob: Future[Unit] = pollForDeposit(depositAddress) flatMap { depositTxn =>
-      for {
-        houseTxn <- client.send(from = depositAddress, to = houseAddress, depositTxn.amount)
-        // TODO: Implement a random delay before doling out
-        txns <- doleOut(depositTxn.amount, withdrawalAddresses)
-      } yield {
+    val pollJob = for {
+      depositTxn <- pollForDeposit(depositAddress)
+      houseTxn <- client.send(from = depositAddress, to = houseAddress, depositTxn.amount)
+      txns <- doleOut(depositTxn.amount, withdrawalAddresses)
+    } yield {
         println(s"Customer deposit detected: $depositTxn")
         println(s"Moved funds from deposit address to house: $houseTxn")
         println("Dole out transactions:\n- " + txns.mkString("\n- "))
-      }
     }
 
     (depositAddress, pollJob)
@@ -74,7 +64,7 @@ class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("hou
 object MixerApp extends App {
   val client = new FakeClient()
   val mixer = new AsyncMixer(client, "house")
-  val (depositAddress, _) = mixer.mix(Set("addr1", "addr2", "addr3"))
+  val (depositAddress, _) = mixer.mix("addr1", "addr2", "addr3")
   val customerAddress = newAddress()
 
   Await.result(client.create(customerAddress), Duration.Inf)

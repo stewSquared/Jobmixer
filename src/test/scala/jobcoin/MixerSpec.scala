@@ -14,7 +14,7 @@ class MixerSpec extends FlatSpec with Matchers with ScalaFutures {
 
   "mixer" should "deposit all JBC into given addresses" in {
     val withdrawalAddresses = (1 to 7).map(n => newAddress(s"out$n"))
-    val (depositAddress, pollJob) = mixer.mix(withdrawalAddresses.toSet)
+    val (depositAddress, pollJob) = mixer.mix(withdrawalAddresses: _*)
     val customerAddress = newAddress("cust")
 
     Await.result(client.create(customerAddress), Duration.Inf)

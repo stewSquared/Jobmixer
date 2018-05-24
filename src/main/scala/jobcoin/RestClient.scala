@@ -30,10 +30,6 @@ class RestClient extends Client with Codecs {
       .flatMap(_.unsafeBody.fold(Future.failed, Future.successful))
   }
 
-  private def unsafeLatestTransaction(address: Address): Future[Transaction] = {
-    addressInfo(address).map(_.transactions.head)
-  }
-
   override def send(from: Address, to: Address, amount: Jobcoin): Future[Transaction] = {
     val sendJBC = sttp.post(uri"$apiEndpoint/transactions")
       .body(
@@ -43,7 +39,7 @@ class RestClient extends Client with Codecs {
       .send()
       .map(_.unsafeBody)
 
-    sendJBC.flatMap(_ => unsafeLatestTransaction(to))
+    sendJBC.flatMap(_ => latestTransaction(to).map(_.get))
   }
 
   override def create(address: Address): Future[Transaction] = {
@@ -54,7 +50,7 @@ class RestClient extends Client with Codecs {
     // Note: create side-effect still happens on a 404,
     // so we ignore everything but server error
 
-    createJBC.flatMap(_ => unsafeLatestTransaction(address))
+    createJBC.flatMap(_ => latestTransaction(address).map(_.get))
   }
 }
 

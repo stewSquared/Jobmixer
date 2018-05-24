@@ -24,9 +24,7 @@ case class Transaction(
 )
 
 object Transaction {
-  private def nowMillis() = Instant.now().truncatedTo(ChronoUnit.MILLIS)
-
   def now(from: Option[Address], to: Address, amount: Jobcoin) =
-    Transaction(nowMillis(), from, to, amount)
+    Transaction(Instant.now().truncatedTo(ChronoUnit.MILLIS), from, to, amount)
 
 }
