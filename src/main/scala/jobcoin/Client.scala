@@ -26,7 +26,7 @@ class FakeClient extends Client {
   private var ledger: List[Transaction] = Nil
 
   // Note: Unsynchronized mutation here
-  private val balances = new Map.WithDefault(Map.empty[Address, Jobcoin], (_ : Address) => BigDecimal(0))
+  private val balances = new Map.WithDefault(Map.empty[Address, Jobcoin], (_ : Address) => Jobcoin(0))
 
   override def addressInfo(address: Address) = Future.successful(
     AddressInfo(
@@ -43,7 +43,7 @@ class FakeClient extends Client {
     Future[Transaction] {
       balances(from) -= amount
       balances(to) += amount
-      val newTransaction = Transaction(Instant.now(), Some(from), to, amount)
+      val newTransaction = Transaction.now(Some(from), to, amount)
       ledger = newTransaction :: ledger
 
       newTransaction
@@ -51,10 +51,9 @@ class FakeClient extends Client {
   }
 
   override def create(address: Address): Future[Transaction] = {
-    val amount: Jobcoin = BigDecimal(50)
-    balances(address) += 50
-    // TODO add a constructor with timestamp truncated to millis
-    val initialDeposit = Transaction(Instant.now(), from = None, to = address, amount)
+    val initialDeposit = Transaction.now(from = None, to = address, Jobcoin(50))
+    balances(address) += initialDeposit.amount
+
     ledger = initialDeposit :: ledger
     Future.successful(initialDeposit)
   }

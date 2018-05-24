@@ -19,13 +19,13 @@ class MixerSpec extends FlatSpec with Matchers with ScalaFutures {
     Await.result(client.create(customerAddress), Duration.Inf)
 
     (for {
-      depositTxn <- client.send(from = customerAddress, to = depositAddress, BigDecimal(50))
+      depositTxn <- client.send(from = customerAddress, to = depositAddress, Jobcoin(50))
       _ <- pollJob
       AddressInfo(bal1, _) <- client.addressInfo("addr1")
       AddressInfo(bal2, _) <- client.addressInfo("addr2")
       AddressInfo(bal3, _) <- client.addressInfo("addr3")
     } yield {
-      (bal1 + bal2 + bal3) shouldBe BigDecimal(50)
+      (bal1 + bal2 + bal3) shouldBe Jobcoin(50)
     }).futureValue
 
   }

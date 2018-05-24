@@ -8,7 +8,7 @@ class ClientSpec extends FlatSpec with Matchers with ScalaFutures with Inside {
   val client = new FakeClient()
 
   "New address" should "have 0 balance and no transactions" in {
-    client.addressInfo(newAddress()).futureValue shouldBe AddressInfo(0, Nil)
+    client.addressInfo(newAddress()).futureValue shouldBe AddressInfo(Jobcoin(0), Nil)
   }
 
   it should "be able to be loaded with new coins" in {
@@ -17,7 +17,7 @@ class ClientSpec extends FlatSpec with Matchers with ScalaFutures with Inside {
 
     whenReady(client.addressInfo(addr)) {
       x => inside(x) { case AddressInfo(balance, List(initialTransaction)) =>
-        balance shouldBe BigDecimal(50)
+        balance shouldBe Jobcoin(50)
         inside(initialTransaction) {
           case Transaction(_, from, to, amount) =>
             amount shouldBe balance
@@ -34,16 +34,16 @@ class ClientSpec extends FlatSpec with Matchers with ScalaFutures with Inside {
     client.create(addr1)
 
     (for {
-      sendTxn <- client.send(from = addr1, to = addr2, BigDecimal(20))
+      sendTxn <- client.send(from = addr1, to = addr2, Jobcoin(20))
       info1 <- client.addressInfo(addr1)
       info2 <- client.addressInfo(addr2)
     } yield {
       inside(info1) {
         case AddressInfo(balance, List(latest, create)) =>
-          balance shouldBe BigDecimal(30)
+          balance shouldBe Jobcoin(30)
           sendTxn shouldBe latest
       }
-      info2 shouldBe AddressInfo(BigDecimal(20), transactions = List(sendTxn))
+      info2 shouldBe AddressInfo(Jobcoin(20), transactions = List(sendTxn))
     }).futureValue
   }
 }
