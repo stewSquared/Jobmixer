@@ -10,7 +10,7 @@ class MixerSpec extends FlatSpec with Matchers with ScalaFutures {
   override def spanScaleFactor = 100.0
 
   val client: Client = new FakeClient()
-  val mixer: Mixer = new AsyncMixer("house", client)
+  val mixer: Mixer = new AsyncMixer(client, newAddress("test-house"))
 
   "mixer" should "deposit all JBC into given addresses" in {
     val (depositAddress, pollJob) = mixer.mix(Set("addr1", "addr2", "addr3"))

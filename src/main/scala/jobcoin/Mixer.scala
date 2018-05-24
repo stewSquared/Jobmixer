@@ -13,7 +13,7 @@ trait Mixer {
   val houseAddress: Address
 }
 
-class AsyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
+class AsyncMixer(val client: Client, val houseAddress: Address = newAddress("house")) extends Mixer {
   import java.util.UUID
 
   private def split(amount: Jobcoin, n: Int): List[Jobcoin] = {
