@@ -29,7 +29,6 @@ class SyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
     (amount - part * (n-1)) :: List.fill(n - 1)(part)
   }
 
-  // TODO: Make this async
   def doleOut(amount: Jobcoin, withdrawalAddresses: Set[Address]): Future[List[Transaction]] = {
     val withdrawalAmounts = split(amount, withdrawalAddresses.size)
 
@@ -48,27 +47,14 @@ class SyncMixer(val houseAddress: Address, val client: Client) extends Mixer {
     println(s"Checking $depositAddress for deposit...")
     checkForDeposit(depositAddress).flatMap { deposit =>
       deposit.map(Future.successful).getOrElse {
-        blocking(Thread.sleep(5000))
+        blocking(Thread.sleep(1000))
         pollForDeposit(depositAddress)
       }
     }
   }
 
-  // Have a new random customer deposit 50 coins
   override def mix(withdrawalAddresses: Set[Address]): Address = {
-    val customerAddress = newAddress()
     val depositAddress = newAddress()
-
-    // Todo: deposit happens asynchronously from user input
-    def setup() = for {
-      _ <- client.create(customerAddress)
-      newAddressInfo <- client.addressInfo(customerAddress)
-      depositTxn <- client.send(from = customerAddress, to = depositAddress, BigDecimal(50))
-    } yield {
-      println(s"Created new customer with jbc: $newAddressInfo")
-      println(s"Customer deposit sent: $depositTxn")
-    }
-    Await.result(setup(), Duration.Inf)
 
     pollForDeposit(depositAddress) flatMap { depositTxn =>
       for {
