@@ -5,7 +5,9 @@ import org.scalatest.{ Inside, FlatSpec, Matchers }
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class ClientSpec extends FlatSpec with Matchers with ScalaFutures with Inside {
-  val client = new FakeClient()
+  override def spanScaleFactor = 100.0
+
+  val client = new RestClient()
 
   "New address" should "have 0 balance and no transactions" in {
     client.addressInfo(newAddress()).futureValue shouldBe AddressInfo(Jobcoin(0), Nil)
